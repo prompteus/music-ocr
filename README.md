@@ -10,7 +10,7 @@ uv pip install -e .
 pre-commit install
 ```
 
-# Build Preprocessors
+## Build a Preprocessor
 ```shell
 ARCH=llava; uv run scripts/build_preprocessor.py config/build_preprocessor.yaml --override preprocessor=$ARCH artifacts/preprocessors/$ARCH
 ```
