@@ -1,0 +1,9 @@
+kind: "llava"
+tokenizer:
+  special_tokens: ["<PAD>", "<BOS>", "<SEP>", "<EOS>", "<IMG_PATCH>"]
+  bos_token: "<BOS>"
+  pad_token: "<PAD>"
+  eos_token: "<EOS>"
+img_size: [256, 1024]
+patch_size: 16
+pad_to_multiple_of: 16

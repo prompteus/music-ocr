@@ -1,0 +1,42 @@
+defaults:
+  - architecture: ~ # fill in before training
+  - dataset: grandstaff_ekern
+  - _self_
+
+preprocessor_path: ~ # fill in before training
+
+torch:
+  num_threads: 8
+  float32_matmul_precision: "medium"
+
+trainer:
+  precision: "32-true"
+  max_epochs: 100
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+
+optimizer:
+  kind: "AdamW"
+  lr: 1.0e-4
+
+scheduler:
+  name: "constant_with_warmup"
+  num_warmup_steps: 100
+
+formatting:
+  convert_to: "bekern"
+
+train_loader:
+  batch_size: 32
+  shuffle: true
+  num_workers: 64
+  prefetch_factor: 2
+
+valid_loader:
+  batch_size: 32
+  num_workers: 8
+  prefetch_factor: 2
+
+gen_eval:
+  max_new_tokens: 1024
+  eval_n_examples: 320

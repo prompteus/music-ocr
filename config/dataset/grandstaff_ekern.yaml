@@ -1,0 +1,5 @@
+name: "PRAIG/grandstaff-ekern"
+img_col: "image"
+txt_col: "transcription"
+train_split_name: "train"
+valid_split_name: "val"

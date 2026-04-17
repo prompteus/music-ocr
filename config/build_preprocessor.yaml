@@ -1,0 +1,7 @@
+defaults:
+  - dataset: grandstaff_ekern
+  - preprocessor: llava
+  - _self_
+
+formatting:
+  convert_to: "bekern"
