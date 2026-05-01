@@ -54,7 +54,7 @@ class OCRLightning(lightning.LightningModule):
         return self.model(**batch)  # type: ignore
 
     def training_step(self, batch: Batch, batch_idx: int) -> Tensor:
-        bs = self._get_batch_size(batch.inputs)
+        bs = len(batch.labels_str)
         output: CausalLMOutputWithPast = self.model(**batch.inputs)  # type: ignore
         assert output.loss is not None
         if not torch.isfinite(output.loss):
@@ -63,7 +63,7 @@ class OCRLightning(lightning.LightningModule):
         return output.loss
 
     def validation_step(self, batch: Batch, batch_idx: int, dataloader_idx: int) -> None:
-        bs = self._get_batch_size(batch.inputs)
+        bs = len(batch.labels_str)
         if self.valid_loader_is_gen_eval and self.valid_loader_is_gen_eval[dataloader_idx]:
             metrics = self._validation_step_gen_eval(batch)
         else:
@@ -94,10 +94,3 @@ class OCRLightning(lightning.LightningModule):
         if self.valid_loader_prefixes:
             return self.valid_loader_prefixes[dataloader_idx]
         return f"valid_{dataloader_idx}"
-
-    def _get_batch_size(self, batch: tensordict.TensorDict | dict) -> int:
-        for key in ["input_ids", "labels"]:
-            if key in batch:
-                value = cast(Tensor, batch[key])
-                return value.size(0)
-        raise ValueError("Batch size could not be determined")
