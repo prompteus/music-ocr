@@ -1,0 +1,24 @@
+kind: "glm_ocr"
+
+tokenizer:
+  special_tokens: ["<PAD>", "<BOS>", "<SEP>", "<EOS>", "<IMG_PATCH>", "<IMG_START>", "<IMG_END>"]
+  bos_token: "<BOS>"
+  pad_token: "<PAD>"
+  eos_token: "<EOS>"
+
+image_processor:
+  do_resize: true
+  resample: 3 # PIL.Image.BICUBIC
+  size:
+    shortest_edge: 4096 # (32*32) * 4, min 4 image tokens per image
+    longest_edge: 1310720 # (32*32) * 1280, max 1280 image tokens per image
+  default_to_square: false
+  rescale_factor: 0.003921568627 # 1/255
+  do_convert_rgb: false
+  patch_size: 16
+  temporal_patch_size: 2
+  merge_size: 2
+  do_rescale: true
+  do_normalize: true
+  image_mean: 0.5
+  image_std: 0.5
