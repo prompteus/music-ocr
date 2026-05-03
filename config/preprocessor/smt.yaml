@@ -1,0 +1,7 @@
+kind: "smt"
+tokenizer:
+  special_tokens: ["<PAD>", "<SEP>", "<EOS>"]
+  bos_token: "<SEP>"
+  pad_token: "<PAD>"
+  eos_token: "<EOS>"
+img_size: [256, 1024]
