@@ -16,6 +16,7 @@ from music_ocr.model.base import (
 # Import all model modules so subclasses are registered
 from . import (
     llava,  # noqa: F401
+    smt,  # noqa: F401
 )
 from .base import ArchitectureConfig as BaseArch
 from .base import PreprocessorConfig as BasePrep
