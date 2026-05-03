@@ -17,6 +17,7 @@ from music_ocr.model.base import (
 from . import (
     llava,  # noqa: F401
     qwen25vl,  # noqa: F401
+    smt,  # noqa: F401
 )
 from .base import ArchitectureConfig as BaseArch
 from .base import PreprocessorConfig as BasePrep
