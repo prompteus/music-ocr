@@ -20,6 +20,7 @@ dependencies = [
     "plotly>=6.7.0",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
+    "resvg-cli>=0.44.0",
     "tensordict>=0.11.0",
     "torch>=2.11.0",
     "torchmetrics>=1.9.0",
@@ -27,26 +28,27 @@ dependencies = [
     "tqdm>=4.67.3",
     "transformers>=5.5.0",
     "typer>=0.24.1",
+    "verovio>=6.1.0",
     "wandb>=0.25.1",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["music_ocr"]
+packages = ["music_ocr", "generator"]
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 torchvision = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [tool.uv.extra-build-dependencies]
 flash-attn = ["torch"]
 
 [[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [dependency-groups]
@@ -93,6 +95,7 @@ include = [
     "music_ocr/**/*.py",
     "tests/**/*.py",
     "scripts/**/*.py",
+    "generator/**/*.py",
 ]
 
 [tool.ty.src]
