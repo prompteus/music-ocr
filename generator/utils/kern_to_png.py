@@ -22,9 +22,17 @@ class KernToPng:
     def __call__(self, kern_sequence: str) -> str:
         return self.render_to_image(kern_sequence)
 
-    def render_to_image(self, kern_sequence: str) -> str:
+    def render_to_image(self, kern_sequence: str, *, single_line: bool = True) -> str:
+        options = {
+            "adjustPageHeight": True,
+            "adjustPageWidth": True,
+            "header": "none",
+            "footer": "none",
+        }
+        if single_line:
+            options["breaks"] = "none"
+        self.tk.setOptions(options)
         self.tk.loadData(kern_sequence)
-        self.tk.setOptions({"adjustPageHeight": True, "adjustPageWidth": True, "header": "none", "footer": "none"})
         svg_data = self.tk.renderToSVG(1)
         image = self.render(svg_data)
         png_file_name = "output.png"
