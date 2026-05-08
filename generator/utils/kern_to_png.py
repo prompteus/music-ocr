@@ -13,6 +13,8 @@ class KernToPng:
     Uses Verovio to compile the notation and PyMuPDF (fitz) to rasterize it flawlessly.
     """
 
+    BACKGROUND_COLOR = "#FFFFFF"
+
     def __init__(self):
         verovio.enableLog(verovio.LOG_OFF)
         self.tk = verovio.toolkit()
@@ -34,15 +36,8 @@ class KernToPng:
         svg: str,
         width: int | None = None,
         height: int | None = None,
-        background: str | None = None,
         resvg_cmd: str | None = None,
     ) -> Image.Image:
-        """
-        Render an SVG to a PIL image using resvg.
-
-        If background is None, the image will have an alpha channel.
-        If both width and height are None, the image will be rendered at the SVG's specified size.
-        """
         if resvg_cmd is None:
             resvg_cmd = shutil.which("resvg")
             if resvg_cmd is None:
@@ -68,8 +63,7 @@ class KernToPng:
             if height is not None:
                 command.append(f"-h={height}")
 
-            if background is not None:
-                command.append(f"--background={background}")
+            command.append(f"--background={self.BACKGROUND_COLOR}")
 
             # Read SVG from stdin
             command.append("-")
