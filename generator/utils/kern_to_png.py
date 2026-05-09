@@ -35,7 +35,11 @@ class KernToPng:
         self.tk.loadData(kern_sequence)
         svg_data = self.tk.renderToSVG(1)
         image = self.render(svg_data)
-        png_file_name = "output.png"
+        import tempfile
+        import uuid
+        import os
+
+        png_file_name = os.path.join(tempfile.gettempdir(), f"output_{uuid.uuid4().hex}.png")
         image.save(png_file_name)
         return png_file_name
 
@@ -85,7 +89,9 @@ class KernToPng:
                 check=True,
             )
 
-            return Image.open(temp_png.name)
+            img = Image.open(temp_png.name)
+            img.load()
+            return img
 
 
 if __name__ == "__main__":

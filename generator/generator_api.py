@@ -3,6 +3,8 @@ from typing import Tuple, Optional
 from generator.utils.kern_to_png import KernToPng
 from generator.utils.kern_generator import KernGenerator
 from generator.utils.kern_annotation_parser import convert_kern_to_annotated
+from generator.utils.generate_hf_dataset import generate_hf_dataset
+from generator.utils.upload_to_hf import upload_to_hf
 
 
 class Generator:
@@ -16,8 +18,20 @@ class Generator:
         annotated_kern: str = convert_kern_to_annotated(kern)
         return image_path, annotated_kern
 
+    @staticmethod
+    def generateDataset(
+        output_dir: str,
+        train_samples: int = 500,
+        val_samples: int = 50,
+        num_workers: int = 4,
+    ) -> None:
+        generate_hf_dataset(
+            train_samples=train_samples,
+            val_samples=val_samples,
+            output_dir=output_dir,
+            num_workers=num_workers,
+        )
 
-if __name__ == "__main__":
-    gen = Generator()
-    image_path, kern = gen.generateStaff(num_measures=6, single_line=True)
-    print(kern)
+    @staticmethod
+    def uploadDataset(dataset_path: str, repo_id: str) -> None:
+        upload_to_hf(dataset_path=dataset_path, repo_id=repo_id)
