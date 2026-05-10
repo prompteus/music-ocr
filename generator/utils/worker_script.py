@@ -1,13 +1,13 @@
-import sys
+import typer
 import json
 import random
 import os
 
 
-def main():
-    idx = int(sys.argv[1])
-    output_dir = sys.argv[2]
-
+def main(
+    idx: int = typer.Argument(..., help="The index of the sample being generated."),
+    output_dir: str = typer.Argument(..., help="The directory where the generated image will be saved."),
+):
     from generator.generator_api import Generator
     from PIL import Image
 
@@ -31,4 +31,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
