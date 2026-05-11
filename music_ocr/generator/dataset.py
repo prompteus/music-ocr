@@ -5,7 +5,7 @@ import json
 import sys
 
 
-def _generate_single_sample(args):
+def _generate_single_sample(args: tuple[int, str]) -> dict[str, str] | None:
     try:
         idx, output_dir = args
 
@@ -33,9 +33,9 @@ def _generate_single_sample(args):
         return None
 
 
-def _generate_split(split_name, total, img_dir, num_workers):
+def _generate_split(split_name: str, total: int, img_dir: Path, num_workers: int) -> list[dict[str, str]]:
     args = [(i, str(img_dir)) for i in range(total)]
-    meta = []
+    meta: list[dict[str, str]] = []
     failed = 0
 
     with multiprocessing.Pool(processes=num_workers, maxtasksperchild=1) as pool:

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def upload_to_hf(dataset_path: str, repo_id: str) -> None:
+def upload_to_hf(dataset_path: str | Path, repo_id: str) -> None:
     from datasets import load_from_disk
 
     path = Path(dataset_path)

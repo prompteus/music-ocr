@@ -7,7 +7,6 @@ Ensures thorough and controllable coverage of standard Humdrum **kern syntax ele
 import random
 import re
 from fractions import Fraction
-from typing import Dict, List, Optional, Set, Union, Tuple
 
 
 def _get_dot_multiplier(dots: str) -> Fraction:
@@ -30,36 +29,36 @@ class KernGenerator:
     RESET_TRACKING_AFTER_N_GENERATED_MEASURES_AND_METHOD_COMPLETION: int = 4000
 
     # Generation Probabilities & Constants
-    REST_PROBABILITY = 0.05
-    FERMATA_ON_REST_PROB = 0.05
+    REST_PROBABILITY: float = 0.05
+    FERMATA_ON_REST_PROB: float = 0.05
 
-    PHRASE_START_PROB = 0.05
-    PHRASE_END_PROB = 0.1
-    SLUR_START_PROB = 0.05
-    SLUR_END_PROB = 0.1
-    TIE_START_PROB = 0.05
-    TIE_END_PROB = 0.5
-    GLISSANDO_START_PROB = 0.05
-    GLISSANDO_END_PROB = 0.2
-    BEAM_START_PROB = 0.05
-    BEAM_END_PROB = 0.2
+    PHRASE_START_PROB: float = 0.05
+    PHRASE_END_PROB: float = 0.1
+    SLUR_START_PROB: float = 0.05
+    SLUR_END_PROB: float = 0.1
+    TIE_START_PROB: float = 0.05
+    TIE_END_PROB: float = 0.5
+    GLISSANDO_START_PROB: float = 0.05
+    GLISSANDO_END_PROB: float = 0.2
+    BEAM_START_PROB: float = 0.05
+    BEAM_END_PROB: float = 0.2
 
-    CHORD_PROBABILITY = 0.05
-    BARLINE_OVERRIDE_PROB = 0.05
+    CHORD_PROBABILITY: float = 0.05
+    BARLINE_OVERRIDE_PROB: float = 0.05
 
-    OCTAVE_MIN = 1
-    OCTAVE_MAX = 4
+    OCTAVE_MIN: int = 1
+    OCTAVE_MAX: int = 4
 
     # Very long durations historically and stylistically do not take formatting dots
-    UNDOTTABLE_DURATIONS = ["000", "00", "0"]
+    UNDOTTABLE_DURATIONS: list[str] = ["000", "00", "0"]
 
     # Very long durations cannot be beamed together logically since they equal/exceed entire measures natively
-    UNBEAMABLE_DURATIONS = ["000", "00", "0", "1", "2", "3", "4"]
+    UNBEAMABLE_DURATIONS: list[str] = ["000", "00", "0", "1", "2", "3", "4"]
 
     # Binary durations used strictly as greedy allocation templates, mathematically guaranteeing complete metric sums
-    BINARY_DURATIONS = ["000", "00", "0", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
+    BINARY_DURATIONS: list[str] = ["000", "00", "0", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
 
-    DURATIONS_MAP: Dict[str, Fraction] = {
+    DURATIONS_MAP: dict[str, Fraction] = {
         "000": Fraction(8, 1),
         "00": Fraction(4, 1),
         "0": Fraction(2, 1),
@@ -82,7 +81,7 @@ class KernGenerator:
         "1024": Fraction(1, 1024),
     }
 
-    TIMES_MAP: Dict[str, Fraction] = {
+    TIMES_MAP: dict[str, Fraction] = {
         "*M8/1": Fraction(8, 1),
         "*M4/1": Fraction(4, 1),
         "*M2/1": Fraction(2, 1),
@@ -97,7 +96,14 @@ class KernGenerator:
         "*C|": Fraction(2, 2),
     }
 
-    def __init__(self, seed: Optional[int] = None) -> None:
+    in_beam: bool
+    in_slur: bool
+    in_tie: bool
+    in_phrase: bool
+    in_glissando: bool
+    current_pitch: str | None
+
+    def __init__(self, seed: int | None = None) -> None:
         """
         Initializes the generator.
 
@@ -111,7 +117,7 @@ class KernGenerator:
         # https://www.humdrum.org/guide/ch06/
         # https://www.humdrum.org/rep/kern/index.html
         # https://www.humdrum.org/Humdrum/representations/kern.html#Tokens
-        self.playbook: Dict[str, List[Union[str, bool]]] = {
+        self.playbook: dict[str, list[str | bool]] = {
             "durations": [
                 "000",
                 "00",
@@ -214,16 +220,9 @@ class KernGenerator:
             "phrases": ["{", "}"],
         }
 
-        self.used: Dict[str, Set[Union[str, bool]]] = {}
+        self.used: dict[str, set[str | bool]] = {}
         self.generated_measures: int = 0
         self.reset_tracking()
-
-        self.in_beam = False
-        self.in_slur = False
-        self.in_tie = False
-        self.in_phrase = False
-        self.in_glissando = False
-        self.current_pitch: Optional[str] = None
 
         self.reset_state()
 
@@ -244,7 +243,7 @@ class KernGenerator:
         self.in_glissando = False
         self.current_pitch = None
 
-    def _track(self, category: str, value: Union[str, bool]) -> None:
+    def _track(self, category: str, value: str | bool) -> None:
         """Internal helper for logging generated elements."""
         if value is True:
             self.used[category].add(True)
@@ -289,7 +288,7 @@ class KernGenerator:
             return Fraction(0, 1)
         return self.DURATIONS_MAP[dur] * _get_dot_multiplier(dots)
 
-    def _generate_rhythm_sequence(self, target_duration: Fraction) -> List[Tuple[str, str, str]]:
+    def _generate_rhythm_sequence(self, target_duration: Fraction) -> list[tuple[str, str, str]]:
         binary_choices = [(d_str, "") for d_str in self.BINARY_DURATIONS if d_str in self.playbook["durations"]]
 
         # To ensure the greedy loop subtracts the largest components first to avoid remaining crumbs
@@ -317,7 +316,7 @@ class KernGenerator:
                 f = self._get_duration_fraction(dur, dot, "")
                 fracs_map.setdefault(f, []).append((dur, dot))
 
-        def subdivide_chunk(dur_str: str, dot_str: str, frac: Fraction, depth: int = 0) -> List[Tuple[str, str]]:
+        def subdivide_chunk(dur_str: str, dot_str: str, frac: Fraction, depth: int = 0) -> list[tuple[str, str]]:
             if dur_str not in self.used["durations"] or dot_str not in self.used["dots"]:
                 if random.random() < 0.8:
                     return [(dur_str, dot_str)]
@@ -391,18 +390,18 @@ class KernGenerator:
         final_seq = []
         for dur, dot in flat_seq:
             if random.random() < 0.1:
-                grace_type = str(random.choice(["q", "qq"]))
-                grace_dur = str(random.choice(["8", "16", "32"]))
+                grace_type = random.choice(["q", "qq"])
+                grace_dur = random.choice(["8", "16", "32"])
                 final_seq.append((grace_dur, "", grace_type))
 
             primary_grace = ""
             if random.random() < 0.1:
-                primary_grace = str(random.choice(["P", "p"]))
+                primary_grace = random.choice(["P", "p"])
             final_seq.append((dur, dot, primary_grace))
 
         return final_seq
 
-    def _generate_event(self, force_close: bool = False, fixed_rhythm: Optional[Tuple[str, str, str]] = None) -> str:
+    def _generate_event(self, force_close: bool = False, fixed_rhythm: tuple[str, str, str] | None = None) -> str:
         """
         Generates a valid **kern note, chord, or rest token with plausible contexts.
         """
@@ -452,7 +451,7 @@ class KernGenerator:
         if self.in_tie and self.current_pitch:
             pitch_str = self.current_pitch
         else:
-            base = str(random.choice(self.playbook["base_pitches"]))
+            base = random.choice(self.playbook["base_pitches"])
             self._track("base_pitches", base)
             octave = random.randint(self.OCTAVE_MIN, self.OCTAVE_MAX)
             base_pitch = base * octave
@@ -570,12 +569,12 @@ class KernGenerator:
 
         return note_str
 
-    def generate(self, num_measures: int = 10, return_list: bool = False) -> Union[str, List[str]]:
+    def generate(self, num_measures: int = 10, return_list: bool = False) -> str | list[str]:
         """
         Main interface to generate a full Humdrum script sequence with length control.
         """
         self.reset_state()
-        lines: List[str] = ["**kern"]
+        lines: list[str] = ["**kern"]
 
         clef = str(random.choice(self.playbook["clefs"]))
         self._track("clefs", clef)
@@ -639,11 +638,11 @@ class KernGenerator:
             return lines
         return "\n".join(lines)
 
-    def check_coverage(self) -> Dict[str, Set[Union[str, bool]]]:
+    def check_coverage(self) -> dict[str, set[str | bool]]:
         """
         Returns a dictionary of playbook sets that have NOT been produced since tracking was reset.
         """
-        missing: Dict[str, Set[Union[str, bool]]] = {}
+        missing: dict[str, set[str | bool]] = {}
         for key, expected_list in self.playbook.items():
             used_set = self.used[key]
             uncovered = set(expected_list) - used_set

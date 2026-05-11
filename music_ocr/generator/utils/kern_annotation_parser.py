@@ -29,8 +29,8 @@ def _join_annotated(body_parts: list[str], mod_parts: list[str]) -> str:
     Returns:
         The fully annotated string joined by @ and ·.
     """
-    body = "@".join(body_parts) if body_parts else ""
-    mods = "·".join(mod_parts) if mod_parts else ""
+    body: str = "@".join(body_parts) if body_parts else ""
+    mods: str = "·".join(mod_parts) if mod_parts else ""
 
     if body and mods:
         return body + "·" + mods
@@ -56,9 +56,9 @@ def _parse_modifier_chars(s: str) -> list[str]:
         List of separated modifier characters/blobs.
     """
     mods: list[str] = []
-    i = 0
+    i: int = 0
     while i < len(s):
-        ch = s[i]
+        ch: str = s[i]
         # Multi-character modifiers: LL, JJ, qq
         if i + 1 < len(s) and s[i] == s[i + 1] and s[i] in "LJq":
             mods.append(s[i : i + 2])
@@ -83,15 +83,15 @@ def kern_token_to_annotated_full(token: str) -> str:
     if token.startswith("*") or token.startswith("=") or token == ".":
         return token
 
-    i = 0
-    n = len(token)
+    i: int = 0
+    n: int = len(token)
     if n == 0:
         return token
 
     parts_body: list[str] = []
 
     # Duration digits
-    duration = ""
+    duration: str = ""
     while i < n and token[i].isdigit():
         duration += token[i]
         i += 1
@@ -100,7 +100,7 @@ def kern_token_to_annotated_full(token: str) -> str:
         parts_body.append(duration)
 
     # Dots
-    dots = ""
+    dots: str = ""
     while i < n and token[i] == ".":
         dots += token[i]
         i += 1
@@ -111,12 +111,12 @@ def kern_token_to_annotated_full(token: str) -> str:
     if i < n and token[i] == "r":
         parts_body.append("r")
         i += 1
-        remaining = token[i:]
-        mod_list = _parse_modifier_chars(remaining) if remaining else []
+        remaining: str = token[i:]
+        mod_list: list[str] = _parse_modifier_chars(remaining) if remaining else []
         return _join_annotated(parts_body, mod_list)
 
     # Pitch letters
-    pitch = ""
+    pitch: str = ""
     while i < n and token[i].isalpha() and token[i].lower() in "abcdefg":
         pitch += token[i]
         i += 1
@@ -125,7 +125,7 @@ def kern_token_to_annotated_full(token: str) -> str:
         parts_body.append(pitch)
 
     # Accidentals
-    accidental = ""
+    accidental: str = ""
     while i < n and token[i] in "#-n":
         accidental += token[i]
         i += 1
@@ -133,10 +133,10 @@ def kern_token_to_annotated_full(token: str) -> str:
         parts_body.append(accidental)
 
     # Everything remaining is modifiers
-    remaining = token[i:]
-    mod_list = _parse_modifier_chars(remaining) if remaining else []
+    remaining_mods: str = token[i:]
+    mod_list_pitch: list[str] = _parse_modifier_chars(remaining_mods) if remaining_mods else []
 
-    return _join_annotated(parts_body, mod_list)
+    return _join_annotated(parts_body, mod_list_pitch)
 
 
 def convert_kern_line_to_annotated(line: str) -> str:
@@ -153,13 +153,13 @@ def convert_kern_line_to_annotated(line: str) -> str:
     - Empty tokens (`.` for null data)
     """
     # Split by tabs first (spine boundaries)
-    spines = line.split("\t")
+    spines: list[str] = line.split("\t")
     converted_spines: list[str] = []
 
     for spine in spines:
         # Within a spine, tokens can be space-separated (chords)
-        tokens = spine.split(" ")
-        converted_tokens = [kern_token_to_annotated_full(t) if t else t for t in tokens]
+        tokens: list[str] = spine.split(" ")
+        converted_tokens: list[str] = [kern_token_to_annotated_full(t) if t else t for t in tokens]
         converted_spines.append(" ".join(converted_tokens))
 
     return "\t".join(converted_spines)
@@ -175,7 +175,7 @@ def convert_kern_to_annotated(kern_text: str) -> str:
     Returns:
         The same score with @ and · delimiters inserted
     """
-    lines = kern_text.split("\n")
+    lines: list[str] = kern_text.split("\n")
     converted_lines: list[str] = []
 
     for line in lines:

@@ -13,7 +13,7 @@ def main(
 
     gen = Generator()
     num_measures = random.randint(2, 6)
-    image_path, annotated_kern = gen.generateStaff(num_measures=num_measures, single_line=True)
+    image_path, annotated_kern = gen.generate_staff(num_measures=num_measures, single_line=True)
 
     img = Image.open(image_path)
     img.load()
