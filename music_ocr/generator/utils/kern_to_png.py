@@ -92,7 +92,3 @@ class KernToPng:
             img = Image.open(temp_png.name)
             img.load()
             return img
-
-
-if __name__ == "__main__":
-    print("TODO tests")
