@@ -3,8 +3,8 @@ from typing import Tuple, Optional
 from .utils.kern_to_png import KernToPng
 from .utils.kern_generator import KernGenerator
 from .utils.kern_annotation_parser import convert_kern_to_annotated
-from .utils.generate_hf_dataset import generate_hf_dataset
-from .utils.upload_to_hf import upload_to_hf
+from .dataset import generate_hf_dataset
+from .hf import upload_to_hf
 
 
 class Generator:

@@ -1,18 +1,20 @@
 from pathlib import Path
 import multiprocessing
+import subprocess
+import json
+import sys
 
 
 def _generate_single_sample(args):
     try:
         idx, output_dir = args
-        import subprocess
-        import json
-        import sys
-        import os
 
-        script_path = os.path.join(os.path.dirname(__file__), "worker_script.py")
+        # worker_script.py lives in scripts/ at the project root
+        project_root = Path(__file__).parent.parent.parent
+        script_path = project_root / "scripts" / "worker_script.py"
+
         result = subprocess.run(
-            [sys.executable, script_path, str(idx), output_dir],
+            [sys.executable, str(script_path), str(idx), output_dir],
             capture_output=True,
             text=True,
         )
@@ -32,7 +34,6 @@ def _generate_single_sample(args):
 
 
 def _generate_split(split_name, total, img_dir, num_workers):
-
     args = [(i, str(img_dir)) for i in range(total)]
     meta = []
     failed = 0
@@ -94,26 +95,3 @@ def generate_hf_dataset(
     print(f"Saving HF dataset to {hf_path}...")
     dataset_dict.save_to_disk(hf_path)
     print("Done!")
-
-
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train-samples", type=int, default=500)
-    parser.add_argument("--val-samples", type=int, default=50)
-    parser.add_argument("--output-dir", type=str, default="synthetic_omr_dataset")
-    parser.add_argument("--num-workers", type=int, default=8)
-    args = parser.parse_args()
-
-    generate_hf_dataset(
-        train_samples=args.train_samples,
-        val_samples=args.val_samples,
-        output_dir=args.output_dir,
-        num_workers=args.num_workers,
-    )
-
-
-if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn", force=True)
-    main()
