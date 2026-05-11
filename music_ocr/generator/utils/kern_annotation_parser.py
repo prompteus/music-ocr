@@ -360,10 +360,6 @@ if __name__ == "__main__":
     # ── Round-trip test: annotated → bekern → check it matches manual bekern ──
 
     try:
-        import sys
-        import os
-
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         from music_ocr.kern import parse_kern
 
         # Take a known annotated token sequence and verify parse_kern produces

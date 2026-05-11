@@ -8,7 +8,7 @@ def main(
     idx: int = typer.Argument(..., help="The index of the sample being generated."),
     output_dir: str = typer.Argument(..., help="The directory where the generated image will be saved."),
 ):
-    from generator.generator_api import Generator
+    from music_ocr.generator.generator_api import Generator
     from PIL import Image
 
     gen = Generator()

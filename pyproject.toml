@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["music_ocr", "generator"]
+packages = ["music_ocr"]
 
 [tool.uv.sources]
 torch = [
@@ -55,6 +55,7 @@ explicit = true
 dev = [
     "ipykernel>=7.2.0",
     "ipywidgets>=8.1.8",
+    "music21",
     "mypy>=1.20.0",
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
@@ -95,7 +96,6 @@ include = [
     "music_ocr/**/*.py",
     "tests/**/*.py",
     "scripts/**/*.py",
-    "generator/**/*.py",
 ]
 
 [tool.ty.src]

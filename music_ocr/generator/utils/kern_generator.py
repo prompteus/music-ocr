@@ -821,6 +821,7 @@ def _run_tests() -> None:
             measures = VEROVIO_MEASURE_CHOICES[sample_idx % len(VEROVIO_MEASURE_CHOICES)]
             kern_str = gen.generate(num_measures=measures)
 
+            assert isinstance(kern_str, str)
             # Escape triple-quotes in kern data for safe embedding
             escaped_kern = kern_str.replace("\\", "\\\\").replace('"', '\\"')
 

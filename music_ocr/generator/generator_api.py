@@ -1,10 +1,10 @@
 from typing import Tuple, Optional
 
-from generator.utils.kern_to_png import KernToPng
-from generator.utils.kern_generator import KernGenerator
-from generator.utils.kern_annotation_parser import convert_kern_to_annotated
-from generator.utils.generate_hf_dataset import generate_hf_dataset
-from generator.utils.upload_to_hf import upload_to_hf
+from .utils.kern_to_png import KernToPng
+from .utils.kern_generator import KernGenerator
+from .utils.kern_annotation_parser import convert_kern_to_annotated
+from .utils.generate_hf_dataset import generate_hf_dataset
+from .utils.upload_to_hf import upload_to_hf
 
 
 class Generator:
