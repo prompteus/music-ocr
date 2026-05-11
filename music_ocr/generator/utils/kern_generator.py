@@ -102,6 +102,7 @@ class KernGenerator:
     in_phrase: bool
     in_glissando: bool
     current_pitch: str | None
+    rng_generator: random.Random
 
     def __init__(self, seed: int | None = None) -> None:
         """
@@ -110,8 +111,7 @@ class KernGenerator:
         Args:
             seed: Optional integer seed for reproducible generation.
         """
-        if seed is not None:
-            random.seed(seed)
+        self.rng_generator = random.Random(seed)
 
         # Reference for complete **kern tokens:
         # https://www.humdrum.org/guide/ch06/
@@ -277,7 +277,7 @@ class KernGenerator:
             self.in_glissando = False
             self._track("glissandi", "h")
         if self.in_beam and include_beams:
-            beam_end = str(random.choice(["J", "JJ"]))
+            beam_end = str(self.rng_generator.choice(["J", "JJ"]))
             suffix += beam_end
             self.in_beam = False
             self._track("beams", beam_end)
@@ -318,10 +318,10 @@ class KernGenerator:
 
         def subdivide_chunk(dur_str: str, dot_str: str, frac: Fraction, depth: int = 0) -> list[tuple[str, str]]:
             if dur_str not in self.used["durations"] or dot_str not in self.used["dots"]:
-                if random.random() < 0.8:
+                if self.rng_generator.random() < 0.8:
                     return [(dur_str, dot_str)]
 
-            if depth > 4 or random.random() < 0.2:
+            if depth > 4 or self.rng_generator.random() < 0.2:
                 return [(dur_str, dot_str)]
 
             valid_replacements = []
@@ -375,7 +375,7 @@ class KernGenerator:
             best_score = score(valid_replacements[0])
             top_repls = [r for r in valid_replacements if score(r) == best_score]
 
-            chosen = random.choice(top_repls)
+            chosen = self.rng_generator.choice(top_repls)
 
             ans = []
             for d, dot in chosen:
@@ -389,14 +389,14 @@ class KernGenerator:
 
         final_seq = []
         for dur, dot in flat_seq:
-            if random.random() < 0.1:
-                grace_type = random.choice(["q", "qq"])
-                grace_dur = random.choice(["8", "16", "32"])
+            if self.rng_generator.random() < 0.1:
+                grace_type = self.rng_generator.choice(["q", "qq"])
+                grace_dur = self.rng_generator.choice(["8", "16", "32"])
                 final_seq.append((grace_dur, "", grace_type))
 
             primary_grace = ""
-            if random.random() < 0.1:
-                primary_grace = random.choice(["P", "p"])
+            if self.rng_generator.random() < 0.1:
+                primary_grace = self.rng_generator.choice(["P", "p"])
             final_seq.append((dur, dot, primary_grace))
 
         return final_seq
@@ -409,7 +409,7 @@ class KernGenerator:
         suffix = ""
 
         is_rest = False
-        if not self.in_tie and random.random() < self.REST_PROBABILITY:
+        if not self.in_tie and self.rng_generator.random() < self.REST_PROBABILITY:
             is_rest = True
 
         if fixed_rhythm:
@@ -418,28 +418,28 @@ class KernGenerator:
             self._track("dots", dot)
             self._track("grace", grace)
         else:
-            dur = str(random.choice(self.playbook["durations"]))
+            dur = str(self.rng_generator.choice(self.playbook["durations"]))
             self._track("durations", dur)
 
             dot = ""
             if dur not in self.UNDOTTABLE_DURATIONS:
-                dot = str(random.choice(self.playbook["dots"]))
+                dot = str(self.rng_generator.choice(self.playbook["dots"]))
             self._track("dots", dot)
 
-            grace = str(random.choice(self.playbook["grace"]))
+            grace = str(self.rng_generator.choice(self.playbook["grace"]))
             self._track("grace", grace)
 
         dur_str = f"{dur}{dot}{grace}"
 
         # 1. GENERATE REST
         if is_rest:
-            rest: str = str(random.choice(self.playbook["rests"]))
+            rest: str = str(self.rng_generator.choice(self.playbook["rests"]))
             self._track("rests", rest)
             # Rests cannot carry beam markers in **kern — close everything except beams
             suffix = self._close_all_open_states(suffix, include_beams=False)
 
             art = ""
-            if random.random() < self.FERMATA_ON_REST_PROB:
+            if self.rng_generator.random() < self.FERMATA_ON_REST_PROB:
                 art = ":"
                 self._track("articulations", ":")
             else:
@@ -451,11 +451,11 @@ class KernGenerator:
         if self.in_tie and self.current_pitch:
             pitch_str = self.current_pitch
         else:
-            base = random.choice(self.playbook["base_pitches"])
+            base = self.rng_generator.choice(self.playbook["base_pitches"])
             self._track("base_pitches", base)
-            octave = random.randint(self.OCTAVE_MIN, self.OCTAVE_MAX)
+            octave = self.rng_generator.randint(self.OCTAVE_MIN, self.OCTAVE_MAX)
             base_pitch = base * octave
-            accidental = str(random.choice(self.playbook["accidentals"]))
+            accidental = str(self.rng_generator.choice(self.playbook["accidentals"]))
             self._track("accidentals", accidental)
             pitch_str = f"{base_pitch}{accidental}"
 
@@ -468,31 +468,31 @@ class KernGenerator:
         else:
             # Phrase Logic
             if self.in_phrase:
-                if random.random() < self.PHRASE_END_PROB:
+                if self.rng_generator.random() < self.PHRASE_END_PROB:
                     suffix += "}"
                     self.in_phrase = False
                     self._track("phrases", "}")
             else:
-                if random.random() < self.PHRASE_START_PROB:
+                if self.rng_generator.random() < self.PHRASE_START_PROB:
                     prefix += "{"
                     self.in_phrase = True
                     self._track("phrases", "{")
 
             # Slur Logic
             if self.in_slur:
-                if random.random() < self.SLUR_END_PROB:
+                if self.rng_generator.random() < self.SLUR_END_PROB:
                     suffix += ")"
                     self.in_slur = False
                     self._track("slurs", ")")
             else:
-                if random.random() < self.SLUR_START_PROB:
+                if self.rng_generator.random() < self.SLUR_START_PROB:
                     prefix += "("
                     self.in_slur = True
                     self._track("slurs", "(")
 
             # Tie Logic
             if self.in_tie:
-                if random.random() < self.TIE_END_PROB:
+                if self.rng_generator.random() < self.TIE_END_PROB:
                     suffix += "]"
                     self.in_tie = False
                     self.current_pitch = None
@@ -501,7 +501,7 @@ class KernGenerator:
                     suffix += "_"
                     self._track("ties", "_")
             else:
-                if random.random() < self.TIE_START_PROB:
+                if self.rng_generator.random() < self.TIE_START_PROB:
                     prefix += "["
                     self.in_tie = True
                     self.current_pitch = pitch_str
@@ -509,20 +509,20 @@ class KernGenerator:
 
             # Glissando Logic
             if self.in_glissando:
-                if random.random() < self.GLISSANDO_END_PROB:
+                if self.rng_generator.random() < self.GLISSANDO_END_PROB:
                     suffix += "h"
                     self.in_glissando = False
                     self._track("glissandi", "h")
             else:
-                if random.random() < self.GLISSANDO_START_PROB:
+                if self.rng_generator.random() < self.GLISSANDO_START_PROB:
                     suffix += "H"
                     self.in_glissando = True
                     self._track("glissandi", "H")
 
             # Beam Logic # Only valid for rhythmic note values that typically possess beams
             if self.in_beam:
-                if random.random() < self.BEAM_END_PROB:
-                    beam_end = str(random.choice(["J", "JJ", "k", "K", "kk", "KK"]))
+                if self.rng_generator.random() < self.BEAM_END_PROB:
+                    beam_end = str(self.rng_generator.choice(["J", "JJ", "k", "K", "kk", "KK"]))
                     suffix += beam_end
                     if beam_end in ["J", "JJ"]:
                         self.in_beam = False
@@ -530,36 +530,36 @@ class KernGenerator:
                 else:
                     self._track("beams", "")
             else:
-                if random.random() < self.BEAM_START_PROB and dur not in self.UNBEAMABLE_DURATIONS:
-                    beam_start = str(random.choice(["L", "LL"]))
+                if self.rng_generator.random() < self.BEAM_START_PROB and dur not in self.UNBEAMABLE_DURATIONS:
+                    beam_start = str(self.rng_generator.choice(["L", "LL"]))
                     suffix += beam_start
                     self.in_beam = True
                     self._track("beams", beam_start)
                 else:
                     self._track("beams", "")
 
-        ornament = str(random.choice(self.playbook["ornaments"]))
+        ornament = str(self.rng_generator.choice(self.playbook["ornaments"]))
         self._track("ornaments", ornament)
 
         # Taking specific articulation mapping into account to simplify stacking
-        articulation = str(random.choice(self.playbook["articulations"]))
+        articulation = str(self.rng_generator.choice(self.playbook["articulations"]))
         self._track("articulations", articulation)
 
-        stem = str(random.choice(self.playbook["stems"]))
+        stem = str(self.rng_generator.choice(self.playbook["stems"]))
         self._track("stems", stem)
 
-        editorial = str(random.choice(self.playbook["editorial"]))
+        editorial = str(self.rng_generator.choice(self.playbook["editorial"]))
         self._track("editorial", editorial)
 
         note_str = f"{prefix}{dur_str}{pitch_str}{ornament}{articulation}{stem}{editorial}{suffix}"
 
         # 3. CHORD PROBABILITY INJECTION
-        if not force_close and not self.in_tie and random.random() < self.CHORD_PROBABILITY:
+        if not force_close and not self.in_tie and self.rng_generator.random() < self.CHORD_PROBABILITY:
             self._track("chords", True)
-            extra_base = str(random.choice(self.playbook["base_pitches"]))
-            extra_octave = random.randint(self.OCTAVE_MIN, self.OCTAVE_MAX)
+            extra_base = str(self.rng_generator.choice(self.playbook["base_pitches"]))
+            extra_octave = self.rng_generator.randint(self.OCTAVE_MIN, self.OCTAVE_MAX)
             extra_base_pitch = extra_base * extra_octave
-            extra_accidental = str(random.choice(self.playbook["accidentals"]))
+            extra_accidental = str(self.rng_generator.choice(self.playbook["accidentals"]))
             extra_pitch_str = f"{extra_base_pitch}{extra_accidental}"
 
             chord_note = f"{dur_str}{extra_pitch_str}{ornament}{articulation}{stem}{editorial}{suffix}"
@@ -576,15 +576,15 @@ class KernGenerator:
         self.reset_state()
         lines: list[str] = ["**kern"]
 
-        clef = str(random.choice(self.playbook["clefs"]))
+        clef = str(self.rng_generator.choice(self.playbook["clefs"]))
         self._track("clefs", clef)
         lines.append(clef)
 
-        key = str(random.choice(self.playbook["keys"]))
+        key = str(self.rng_generator.choice(self.playbook["keys"]))
         self._track("keys", key)
         lines.append(key)
 
-        time = str(random.choice(self.playbook["times"]))
+        time = str(self.rng_generator.choice(self.playbook["times"]))
         self._track("times", time)
         lines.append(time)
         measure_duration = self.TIMES_MAP[time]
@@ -595,7 +595,7 @@ class KernGenerator:
                 valid_barlines = self.playbook["barlines"].copy()
                 if measure == 1 and "=:|!" in valid_barlines:
                     valid_barlines.remove("=:|!")
-                raw_barline = str(random.choice(valid_barlines))
+                raw_barline = str(self.rng_generator.choice(valid_barlines))
             else:
                 raw_barline = "="
             self._track("barlines", raw_barline)
@@ -620,7 +620,7 @@ class KernGenerator:
         if "=!|:" in valid_final:
             valid_final.remove("=!|:")
 
-        final_barline = str(random.choice(valid_final))
+        final_barline = str(self.rng_generator.choice(valid_final))
         self._track("barlines", final_barline)
         lines.append(final_barline)
 
