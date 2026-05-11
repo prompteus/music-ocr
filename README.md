@@ -12,12 +12,19 @@ pre-commit install
 
 ## Build a Preprocessor
 ```shell
-ARCH=llava; uv run scripts/build_preprocessor.py config/build_preprocessor.yaml --override preprocessor=$ARCH artifacts/preprocessors/$ARCH
+# Real dataset only (default - grandstaff_ekern):
+uv run scripts/build_preprocessor.py config/build_preprocessor.yaml artifacts/preprocessors/llava
+# Both datasets (default + synthetic_omr_500k):
+uv run scripts/build_preprocessor.py config/build_preprocessor.yaml artifacts/preprocessors/llava \
+  --override '+dataset@datasets.synthetic=synthetic_omr_500k'
 ```
 
 
 ## Run Training
-
 ```shell
 ARCH=llava; CUDA_VISIBLE_DEVICES=...; uv run scripts/train.py config/train.yaml --override architecture=$ARCH --override preprocessor_path=artifacts/preprocessors/$ARCH
+
+# TODO init with pretrained weights from synth training + continue training on real data
 ```
+
+
