@@ -1,9 +1,3 @@
-"""
-Tests for music_ocr.generator.utils.kern_annotation_parser.
-
-Mirrors: music_ocr/generator/utils/kern_annotation_parser.py
-"""
-
 import pytest
 from music_ocr.generator.utils.kern_annotation_parser import (
     convert_kern_line_to_annotated,
