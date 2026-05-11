@@ -1,9 +1,6 @@
-"""
-Tests for music_ocr.generator.utils.kern_generator.
-
-Mirrors: music_ocr/generator/utils/kern_generator.py
-"""
-
+from __future__ import annotations
+import importlib.util
+import multiprocessing
 import re
 from fractions import Fraction
 
@@ -133,50 +130,75 @@ def test_music21_syntax_validation(gen: KernGenerator):
     )
 
 
-@pytest.mark.skip(
-    reason=(
-        "Verovio test requires a separate Python env with verovio installed. "
-        "Update VENV_PYTHON to a valid path on your machine before enabling."
-    )
-)
+def _verovio_worker(kern_str: str, result_queue: multiprocessing.Queue) -> None:
+    """Worker function to be run in a separate process to shield against Verovio segfaults."""
+    import io
+    from contextlib import redirect_stderr, redirect_stdout
+
+    import verovio
+
+    verovio.enableLog(verovio.LOG_OFF)
+    tk = verovio.toolkit()
+
+    f = io.StringIO()
+    with redirect_stdout(f), redirect_stderr(f):
+        tk.loadData(kern_str)
+        svg = tk.renderToSVG(1)
+
+    if "ff0000" in svg.lower():
+        result_queue.put("RED")
+    else:
+        result_queue.put("OK")
+
+
+HAS_VEROVIO = importlib.util.find_spec("verovio") is not None
+
+
+@pytest.mark.skipif(not HAS_VEROVIO, reason="Verovio not installed in the current environment.")
 def test_verovio_no_red_elements(gen: KernGenerator):
     """Generated kern does not produce red (invalid) elements in Verovio SVG output."""
-    import subprocess
-    import sys
 
-    VENV_PYTHON = sys.executable  # override with a verovio-enabled interpreter if needed
     SAMPLES = 30
     MEASURE_CHOICES = [2, 3, 4, 6, 8]
 
     red_samples = []
     crash_count = 0
+
     for sample_idx in range(SAMPLES):
         measures = MEASURE_CHOICES[sample_idx % len(MEASURE_CHOICES)]
         kern_str = gen.generate(num_measures=measures)
         assert isinstance(kern_str, str)
-        escaped_kern = kern_str.replace("\\", "\\\\").replace('"', '\\"')
-        script = (
-            "import sys, io, verovio\n"
-            "from contextlib import redirect_stdout, redirect_stderr\n"
-            "verovio.enableLog(verovio.LOG_OFF)\n"
-            "tk = verovio.toolkit()\n"
-            f'kern = "{escaped_kern}"\n'
-            'kern = kern.replace("\\\\n", "\\n")\n'
-            "f = io.StringIO()\n"
-            "with redirect_stdout(f), redirect_stderr(f):\n"
-            "    tk.loadData(kern)\n"
-            "    svg = tk.renderToSVG(1)\n"
-            'if "ff0000" in svg.lower():\n'
-            '    print("RED")\n'
-            "else:\n"
-            '    print("OK")\n'
-        )
+
+        result_queue: multiprocessing.Queue[str] = multiprocessing.Queue()
+        p = multiprocessing.Process(target=_verovio_worker, args=(kern_str, result_queue))
+
         try:
-            result = subprocess.run([VENV_PYTHON, "-c", script], capture_output=True, text=True, timeout=15)
-            if result.stdout.strip() == "RED":
-                red_samples.append((sample_idx, measures, kern_str))
-        except (subprocess.TimeoutExpired, Exception):
+            p.start()
+            p.join(timeout=15)
+
+            if p.is_alive():
+                p.terminate()
+                p.join()
+                crash_count += 1
+                continue
+
+            if p.exitcode != 0:
+                crash_count += 1
+                continue
+
+            if not result_queue.empty():
+                res = result_queue.get()
+                if res == "RED":
+                    red_samples.append((sample_idx, measures, kern_str))
+            else:
+                # Process finished but queue is empty? Likely a silent crash or failure.
+                crash_count += 1
+
+        except Exception:
             crash_count += 1
+            if p.is_alive():
+                p.terminate()
+                p.join()
 
     assert not red_samples, (
         f"Verovio validation failed: {len(red_samples)}/{SAMPLES} samples had red elements. Crashes: {crash_count}"
