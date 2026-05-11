@@ -186,6 +186,3 @@ def convert_kern_to_annotated(kern_text: str) -> str:
             converted_lines.append(convert_kern_line_to_annotated(line))
 
     return "\n".join(converted_lines)
-
-
-# ──────────────────── Tests ────────────────────
