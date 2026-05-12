@@ -114,9 +114,13 @@ def main(
 
     typer.secho("Loading dataset...", fg=typer.colors.CYAN)
     train_ds_raw = datasets.load_dataset(cfg.train_dataset.hf_handle, split=cfg.train_dataset.split_name)
-    train_ds_raw = train_ds_raw.map(
-        parse_kern_row,
-        fn_kwargs={"txt_col": cfg.train_dataset.txt_col, "krn_format": cfg.formatting.convert_to},
+    txt_col = cfg.train_dataset.txt_col
+    krn_format = cfg.formatting.convert_to
+    train_ds_raw.set_transform(
+        lambda batch: {
+            txt_col: [" ".join(music_ocr.kern.parse_kern(t, krn_format=krn_format)) for t in batch[txt_col]],
+            img_col: batch[img_col],
+        },
     )
 
     ds_train = music_ocr.data.OCRDataset(
@@ -146,9 +150,13 @@ def main(
     for ds_key, ds_config in cfg.valid_datasets.items():
         typer.secho(f"  Loading validation dataset '{ds_key}' ({ds_config.hf_handle})...", fg=typer.colors.CYAN)
         valid_ds_raw = datasets.load_dataset(ds_config.hf_handle, split=ds_config.split_name)
-        valid_ds_raw = valid_ds_raw.map(
-            parse_kern_row,
-            fn_kwargs={"txt_col": ds_config.txt_col, "krn_format": cfg.formatting.convert_to},
+        txt_col = ds_config.txt_col
+        img_col = ds_config.img_col
+        valid_ds_raw.set_transform(
+            lambda batch: {
+                txt_col: [" ".join(music_ocr.kern.parse_kern(t, krn_format=krn_format)) for t in batch[txt_col]],
+                img_col: batch[img_col],
+            },
         )
         ds_valid = music_ocr.data.OCRDataset(
             valid_ds_raw,

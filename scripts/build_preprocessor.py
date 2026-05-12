@@ -1,5 +1,4 @@
 import pathlib
-from typing import Any
 
 import datasets
 import hydra
@@ -70,9 +69,16 @@ def main(
                 f" {dataset_cfg.hf_handle!r}. Available splits: {list(ds.keys())}"
             )
 
+        krn_format = cfg.formatting.convert_to
+        txt_col = dataset_cfg.txt_col
+
         typer.secho(f"[{ds_idx + 1}/{len(dataset_items)}] Parsing texts...", fg=typer.colors.CYAN)
         ds = ds.select_columns([dataset_cfg.txt_col])
-        ds = ds.map(parse_kern_row, fn_kwargs={"txt_col": dataset_cfg.txt_col, "krn_format": cfg.formatting.convert_to})
+        ds.set_transform(
+            lambda batch: {
+                txt_col: [" ".join(music_ocr.kern.parse_kern(t, krn_format=krn_format)) for t in batch[txt_col]]
+            }
+        )
 
         typer.secho(f"[{ds_idx + 1}/{len(dataset_items)}] Adding to vocabulary...", fg=typer.colors.CYAN)
         if dataset_cfg.split_name is not None:
@@ -135,10 +141,6 @@ def main(
     assert isinstance(preprocessor, music_ocr.model.base.Preprocessor)
     output_path.mkdir(parents=True, exist_ok=True)
     preprocessor.save(output_path)
-
-
-def parse_kern_row(row: dict[str, Any], txt_col: str, krn_format: music_ocr.kern.KernFormat) -> dict[str, str]:
-    return {txt_col: " ".join(music_ocr.kern.parse_kern(row[txt_col], krn_format=krn_format))}
 
 
 if __name__ == "__main__":
