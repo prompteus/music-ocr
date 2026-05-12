@@ -13,12 +13,11 @@ pre-commit install
 ## Build a Preprocessor
 ```shell
 # Real dataset only (default - grandstaff_ekern):
-uv run scripts/build_preprocessor.py config/build_preprocessor.yaml artifacts/preprocessors/llava
+ARCH=llava; uv run scripts/build_preprocessor.py config/build_preprocessor.yaml --override preprocessor=$ARCH artifacts/preprocessors/$ARCH
 # Both datasets (default + synthetic_omr_500k):
-uv run scripts/build_preprocessor.py config/build_preprocessor.yaml artifacts/preprocessors/llava \
+ARCH=llava; uv run scripts/build_preprocessor.py config/build_preprocessor.yaml --override preprocessor=$ARCH artifacts/preprocessors/$ARCH \
   --override '+dataset@datasets.synthetic=synthetic_omr_500k'
 ```
-
 
 ## Run Training
 ```shell
