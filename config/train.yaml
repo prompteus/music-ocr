@@ -13,6 +13,7 @@ trainer:
   precision: "32-true"
   max_epochs: 100
   check_val_every_n_epoch: 1
+  val_check_interval: 1.0 # 1.0 is for every epoch - 2500 * 16 batch_size = 40000 validate after 40k samples
   gradient_clip_val: 1.0
 
 optimizer:
