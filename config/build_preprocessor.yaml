@@ -1,7 +1,7 @@
 defaults:
   - dataset@datasets.real: grandstaff_ekern
   # To also include the synthetic dataset, add this CLI override:
-  #   --override '+dataset@datasets.synthetic=synthetic_omr_500k'
+  #   --override '+dataset@datasets.synthetic=synth_omr_500k'
   - preprocessor: llava
   - _self_
 
