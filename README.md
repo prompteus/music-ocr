@@ -25,7 +25,7 @@ uv run scripts/train.py config/train_pretraining.yaml \
     --override preprocessor_path=artifacts/preprocessors/$ARCH
 
 # Stage 2: Fine-tune on real data (loads only weights)
-uv run scripts/train.py config/train.yaml \
+uv run scripts/train.py config/train_finetuning.yaml \
     --override architecture=$ARCH \
     --override preprocessor_path=artifacts/preprocessors/$ARCH \
     --load-weights-ckpt </path/to/checkpoint.ckpt>
