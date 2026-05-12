@@ -20,7 +20,7 @@ ARCH=llava; uv run scripts/build_preprocessor.py config/build_preprocessor.yaml 
 export ARCH=llava  # smt, qwen25vl, llava, glm_ocr
 
 # Stage 1: Train on synthetic data
-uv run scripts/train.py config/train_pretraining.yaml \
+uv run scripts/train.py config/train.yaml \
     --override architecture=$ARCH \
     --override preprocessor_path=artifacts/preprocessors/$ARCH
 

@@ -1,6 +1,6 @@
 defaults:
   - architecture: ~ # fill in before training
-  - dataset@train_dataset: grandstaff_train
+  - dataset@train_dataset: synth_omr_500k_train
   - dataset@valid_datasets.grandstaff: grandstaff_val
   - dataset@valid_datasets.synth: synth_omr_500k_val
   - _self_
@@ -8,6 +8,9 @@ defaults:
 preprocessor_path: ~ # fill in before training
 
 checkpointing:
+  - every_n_train_steps: 10000
+    filename: "step@{step}_periodic"
+
   - monitor: "grandstaff/loss"
     filename: "step@{step}_ds@grandstaff_metric@loss"
     save_top_k: 3
