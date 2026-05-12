@@ -79,6 +79,19 @@ def main(
         "--override",
         help="Hydra config overrides to apply on top of the config file. Can be used multiple times.",
     ),
+    ckpt_path: pathlib.Path | None = typer.Option(
+        None,
+        "--ckpt-path",
+        help="Resume full training state (weights + optimizer + epoch) from a Lightning checkpoint.",
+    ),
+    finetune_from: pathlib.Path | None = typer.Option(
+        None,
+        "--finetune-from",
+        help=(
+            "Load ONLY model weights from a Lightning checkpoint, resetting optimizer and epoch counter. "
+            "Use this to fine-tune on a new dataset (e.g. synth -> real) after a previous training run."
+        ),
+    ),
 ):
     omega_cfg, cfg = resolve_config(config_path, override)
     torch.set_float32_matmul_precision(cfg.torch.float32_matmul_precision)
@@ -159,6 +172,21 @@ def main(
     )
     lmodule.set_tokenizer(preprocessor.tokenizer)
 
+    if finetune_from is not None:
+        typer.secho(
+            f"Loading model weights from '{finetune_from}' (fine-tune mode, optimizer state discarded)...",
+            fg=typer.colors.CYAN,
+        )
+        ckpt = torch.load(finetune_from, map_location="cpu", weights_only=False)
+        # Lightning checkpoints store model weights under 'state_dict' with a 'model.' prefix
+        state_dict = {k.removeprefix("model."): v for k, v in ckpt["state_dict"].items() if k.startswith("model.")}
+        missing, unexpected = lmodule.model.load_state_dict(state_dict, strict=True)
+        if missing:
+            typer.secho(f"  Warning: missing keys in checkpoint: {missing}", fg=typer.colors.YELLOW)
+        if unexpected:
+            typer.secho(f"  Warning: unexpected keys in checkpoint: {unexpected}", fg=typer.colors.YELLOW)
+        typer.secho("  Weights loaded successfully.", fg=typer.colors.GREEN)
+
     typer.secho("Setting up logging and checkpointing...", fg=typer.colors.CYAN)
     wandb_logger = lightning.pytorch.loggers.WandbLogger(project="music-ocr", save_dir=".wandb/")
     run: wandb.sdk.wandb_run.Run = wandb_logger.experiment
@@ -217,6 +245,7 @@ def main(
         lmodule,
         train_dataloaders=train_loader,
         val_dataloaders=[dataloader_meta.dataloader for dataloader_meta in val_dataloaders],
+        ckpt_path=str(ckpt_path) if ckpt_path is not None else None,
     )
 
     typer.secho("Exiting", fg=typer.colors.CYAN)
