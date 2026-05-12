@@ -8,11 +8,10 @@ import torch
 
 
 class DatasetConfig(pydantic.BaseModel, extra="forbid"):
-    name: str
+    hf_handle: str
     img_col: str
     txt_col: str
-    train_split_name: str
-    valid_split_name: str
+    split_name: str
 
 
 class OCRDataset(torch.utils.data.Dataset):

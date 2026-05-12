@@ -1,0 +1,5 @@
+defaults:
+  - /dataset/grandstaff@_here_
+  - _self_
+
+split_name: "train"

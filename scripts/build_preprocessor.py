@@ -56,30 +56,31 @@ def main(
     if cfg.disable_caching:
         datasets.disable_caching()
 
-    dataset_items = list(cfg.datasets.items())
-
     vocab_train: set[str] = set()
     vocab: set[str] = set()
     vocab_per_dataset: dict[str, set[str]] = {}
 
+    dataset_items = list(cfg.datasets.items())
     for ds_idx, (ds_key, dataset_cfg) in enumerate(dataset_items):
         typer.secho(
-            f"[{ds_idx + 1}/{len(dataset_items)}] Loading dataset {ds_key!r} ({dataset_cfg.name!r})...",
+            f"[{ds_idx + 1}/{len(dataset_items)}] Loading dataset {ds_key!r} ({dataset_cfg.hf_handle!r})...",
             fg=typer.colors.CYAN,
         )
-        ds: datasets.DatasetDict = datasets.load_dataset(dataset_cfg.name)
-        if dataset_cfg.train_split_name not in ds:
+        ds: datasets.DatasetDict = datasets.load_dataset(dataset_cfg.hf_handle)
+
+        if dataset_cfg.split_name is not None and dataset_cfg.split_name not in ds:
             raise ValueError(
-                f"Train split {dataset_cfg.train_split_name!r} not found in dataset"
-                f" {dataset_cfg.name!r}. Available splits: {list(ds.keys())}"
+                f"datasets[{ds_key!r}].split_name={dataset_cfg.split_name!r} not found in dataset"
+                f" {dataset_cfg.hf_handle!r}. Available splits: {list(ds.keys())}"
             )
 
         typer.secho(f"[{ds_idx + 1}/{len(dataset_items)}] Parsing texts...", fg=typer.colors.CYAN)
         ds = ds.map(parse_kern_row, fn_kwargs={"txt_col": dataset_cfg.txt_col, "krn_format": cfg.formatting.convert_to})
 
         typer.secho(f"[{ds_idx + 1}/{len(dataset_items)}] Adding to vocabulary...", fg=typer.colors.CYAN)
-        for text in ds[dataset_cfg.train_split_name][dataset_cfg.txt_col]:
-            vocab_train.update(str(text).split(" "))
+        if dataset_cfg.split_name is not None:
+            for text in ds[dataset_cfg.split_name][dataset_cfg.txt_col]:
+                vocab_train.update(str(text).split(" "))
 
         dataset_vocab: set[str] = set()
         for split in ds.keys():
@@ -89,6 +90,13 @@ def main(
         vocab_per_dataset[ds_key] = dataset_vocab
 
     typer.secho(f"Found {len(vocab)} unique tokens across {len(dataset_items)} datasets.", fg=typer.colors.CYAN)
+    datasets_without_train_split = sorted(key for key, ds_cfg in cfg.datasets.items() if ds_cfg.split_name is None)
+    if datasets_without_train_split:
+        typer.secho(
+            f"Note: datasets {datasets_without_train_split} have no train split (split_name is null)"
+            f" and are not counted towards vocab_train.",
+            fg=typer.colors.CYAN,
+        )
     if len(vocab - vocab_train) > 0:
         typer.secho(
             f"Warning: There are {len(vocab - vocab_train)} tokens in the whole dataset combination"

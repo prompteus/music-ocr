@@ -52,11 +52,13 @@ class Config(pydantic.BaseModel, extra="forbid"):
     optimizer: dict
     trainer: dict
     preprocessor_path: pathlib.Path
-    dataset: music_ocr.data.DatasetConfig
+    train_dataset: music_ocr.data.DatasetConfig
+    valid_datasets: dict[str, music_ocr.data.DatasetConfig]
     formatting: FormattingConfig
     train_loader: dict
     valid_loader: dict
     gen_eval: GenerativeEvalConfig
+    checkpointing: list[dict]
 
 
 def resolve_config(
@@ -79,14 +81,12 @@ def main(
         "--override",
         help="Hydra config overrides to apply on top of the config file. Can be used multiple times.",
     ),
-    ckpt_path: pathlib.Path | None = typer.Option(
+    resume_ckpt: pathlib.Path | None = typer.Option(
         None,
-        "--ckpt-path",
         help="Resume full training state (weights + optimizer + epoch) from a Lightning checkpoint.",
     ),
-    finetune_from: pathlib.Path | None = typer.Option(
+    load_weights_ckpt: pathlib.Path | None = typer.Option(
         None,
-        "--finetune-from",
         help=(
             "Load ONLY model weights from a Lightning checkpoint, resetting optimizer and epoch counter. "
             "Use this to fine-tune on a new dataset (e.g. synth -> real) after a previous training run."
@@ -113,33 +113,19 @@ def main(
         raise e
 
     typer.secho("Loading dataset...", fg=typer.colors.CYAN)
-    ds = datasets.load_dataset(cfg.dataset.name)
-    ds = ds.map(parse_kern_row, fn_kwargs={"txt_col": cfg.dataset.txt_col, "krn_format": cfg.formatting.convert_to})
+    train_ds_raw = datasets.load_dataset(cfg.train_dataset.hf_handle, split=cfg.train_dataset.split_name)
+    train_ds_raw = train_ds_raw.map(
+        parse_kern_row,
+        fn_kwargs={"txt_col": cfg.train_dataset.txt_col, "krn_format": cfg.formatting.convert_to},
+    )
 
     ds_train = music_ocr.data.OCRDataset(
-        ds[cfg.dataset.train_split_name],
-        img_col=cfg.dataset.img_col,
-        txt_col=cfg.dataset.txt_col,
+        train_ds_raw,
+        img_col=cfg.train_dataset.img_col,
+        txt_col=cfg.train_dataset.txt_col,
         preprocess=preprocessor.preprocess_one,
         pass_label_to_preprocess=True,
     )
-    ds_valid = music_ocr.data.OCRDataset(
-        ds[cfg.dataset.valid_split_name],
-        img_col=cfg.dataset.img_col,
-        txt_col=cfg.dataset.txt_col,
-        preprocess=preprocessor.preprocess_one,
-        pass_label_to_preprocess=True,
-    )
-
-    n_gen_eval = cfg.gen_eval.eval_n_examples
-    _ds_valid_gen = music_ocr.data.OCRDataset(
-        ds[cfg.dataset.valid_split_name],
-        img_col=cfg.dataset.img_col,
-        txt_col=cfg.dataset.txt_col,
-        preprocess=preprocessor.preprocess_one,
-        pass_label_to_preprocess=False,
-    )
-    ds_valid_gen = torch.utils.data.Subset(_ds_valid_gen, torch.randperm(len(_ds_valid_gen))[:n_gen_eval].tolist())
 
     def collate_batch(examples: list[tuple[dict, str]]) -> music_ocr.trainer.Batch:
         raw_inputs = [example[0] for example in examples]
@@ -147,20 +133,52 @@ def main(
         inputs = preprocessor.process_batch(raw_inputs)
         return music_ocr.trainer.Batch(inputs, labels_str)
 
-    typer.secho("Building dataloader...", fg=typer.colors.CYAN)
-    train_loader = torch.utils.data.DataLoader(ds_train, collate_fn=collate_batch, **cfg.train_loader)
-    valid_loader = torch.utils.data.DataLoader(ds_valid, collate_fn=collate_batch, **cfg.valid_loader)
-    valid_loader_gen = torch.utils.data.DataLoader(ds_valid_gen, collate_fn=collate_batch, **cfg.valid_loader)
-
     class DataLoaderMeta(typing.NamedTuple):
         prefix: str
         is_gen_eval: bool
         dataloader: torch.utils.data.DataLoader
 
-    val_dataloaders = [
-        DataLoaderMeta(prefix="valid", is_gen_eval=False, dataloader=valid_loader),
-        DataLoaderMeta(prefix="valid", is_gen_eval=True, dataloader=valid_loader_gen),
-    ]
+    typer.secho("Building dataloaders...", fg=typer.colors.CYAN)
+    train_loader = torch.utils.data.DataLoader(ds_train, collate_fn=collate_batch, **cfg.train_loader)
+
+    val_dataloaders: list[DataLoaderMeta] = []
+    n_gen_eval = cfg.gen_eval.eval_n_examples
+    for ds_key, ds_config in cfg.valid_datasets.items():
+        typer.secho(f"  Loading validation dataset '{ds_key}' ({ds_config.hf_handle})...", fg=typer.colors.CYAN)
+        valid_ds_raw = datasets.load_dataset(ds_config.hf_handle, split=ds_config.split_name)
+        valid_ds_raw = valid_ds_raw.map(
+            parse_kern_row,
+            fn_kwargs={"txt_col": ds_config.txt_col, "krn_format": cfg.formatting.convert_to},
+        )
+        ds_valid = music_ocr.data.OCRDataset(
+            valid_ds_raw,
+            img_col=ds_config.img_col,
+            txt_col=ds_config.txt_col,
+            preprocess=preprocessor.preprocess_one,
+            pass_label_to_preprocess=True,
+        )
+        _ds_valid_gen = music_ocr.data.OCRDataset(
+            valid_ds_raw,
+            img_col=ds_config.img_col,
+            txt_col=ds_config.txt_col,
+            preprocess=preprocessor.preprocess_one,
+            pass_label_to_preprocess=False,
+        )
+        ds_valid_gen = torch.utils.data.Subset(_ds_valid_gen, torch.randperm(len(_ds_valid_gen))[:n_gen_eval].tolist())
+        val_dataloaders.append(
+            DataLoaderMeta(
+                prefix=ds_key,
+                is_gen_eval=False,
+                dataloader=torch.utils.data.DataLoader(ds_valid, collate_fn=collate_batch, **cfg.valid_loader),
+            )
+        )
+        val_dataloaders.append(
+            DataLoaderMeta(
+                prefix=ds_key,
+                is_gen_eval=True,
+                dataloader=torch.utils.data.DataLoader(ds_valid_gen, collate_fn=collate_batch, **cfg.valid_loader),
+            )
+        )
 
     typer.secho("Building model...", fg=typer.colors.CYAN)
     lmodule = music_ocr.trainer.OCRLightning(
@@ -172,12 +190,12 @@ def main(
     )
     lmodule.set_tokenizer(preprocessor.tokenizer)
 
-    if finetune_from is not None:
+    if load_weights_ckpt is not None:
         typer.secho(
-            f"Loading model weights from '{finetune_from}' (fine-tune mode, optimizer state discarded)...",
+            f"Loading model weights from '{load_weights_ckpt}' (fine-tune mode, optimizer state discarded)...",
             fg=typer.colors.CYAN,
         )
-        ckpt = torch.load(finetune_from, map_location="cpu", weights_only=False)
+        ckpt = torch.load(load_weights_ckpt, map_location="cpu", weights_only=False)
         # Lightning checkpoints store model weights under 'state_dict' with a 'model.' prefix
         state_dict = {k.removeprefix("model."): v for k, v in ckpt["state_dict"].items() if k.startswith("model.")}
         missing, unexpected = lmodule.model.load_state_dict(state_dict, strict=True)
@@ -192,14 +210,10 @@ def main(
     run: wandb.sdk.wandb_run.Run = wandb_logger.experiment
     output_dir = pathlib.Path(f"./checkpoints/{run.project}/{run.name}/")
     os.makedirs(output_dir, exist_ok=True)
-    checkpointing = lightning.pytorch.callbacks.ModelCheckpoint(
-        dirpath=output_dir,
-        monitor="valid/loss",
-        filename="step@{step}-valid_loss@{valid/loss:.4f}",
-        auto_insert_metric_name=False,
-        save_top_k=3,
-        mode="min",
-    )
+    checkpoint_callbacks = [
+        lightning.pytorch.callbacks.ModelCheckpoint(dirpath=output_dir, auto_insert_metric_name=False, **ckpt_cfg)
+        for ckpt_cfg in cfg.checkpointing
+    ]
     gradnorm_logger = music_ocr.train_callbacks.GradientNormLogger(norm_type=2)
     lr_logger = lightning.pytorch.callbacks.LearningRateMonitor(
         logging_interval="step",
@@ -211,7 +225,7 @@ def main(
     trainer = lightning.Trainer(
         **cfg.trainer,
         logger=wandb_logger,
-        callbacks=[checkpointing, gradnorm_logger, lr_logger],
+        callbacks=[*checkpoint_callbacks, gradnorm_logger, lr_logger],
     )
 
     typer.secho("Saving preprocessor to checkpoint directory...", fg=typer.colors.CYAN)
@@ -245,7 +259,7 @@ def main(
         lmodule,
         train_dataloaders=train_loader,
         val_dataloaders=[dataloader_meta.dataloader for dataloader_meta in val_dataloaders],
-        ckpt_path=str(ckpt_path) if ckpt_path is not None else None,
+        ckpt_path=str(resume_ckpt) if resume_ckpt is not None else None,
     )
 
     typer.secho("Exiting", fg=typer.colors.CYAN)

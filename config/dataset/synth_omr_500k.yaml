@@ -1,0 +1,4 @@
+hf_handle: "stepan-omelka/synth_omr_500k"
+img_col: "image"
+txt_col: "transcription"
+split_name: ~

@@ -1,5 +1,0 @@
-name: "stepan-omelka/synthetic_omr_500k"
-img_col: "image"
-txt_col: "transcription"
-train_split_name: "train"
-valid_split_name: "val"

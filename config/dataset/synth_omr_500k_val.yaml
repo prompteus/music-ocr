@@ -1,0 +1,5 @@
+defaults:
+  - /dataset/synth_omr_500k@_here_
+  - _self_
+
+split_name: "val"

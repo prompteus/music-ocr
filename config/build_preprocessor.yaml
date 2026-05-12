@@ -1,11 +1,10 @@
 defaults:
-  - dataset@datasets.real: grandstaff_ekern
-  # To also include the synthetic dataset, add this CLI override:
-  #   --override '+dataset@datasets.synthetic=synthetic_omr_500k'
+  - dataset@datasets.grandstaff: grandstaff_train
+  - dataset@datasets.synth: synth_omr_500k_train
   - preprocessor: llava
   - _self_
 
-disable_caching: true
+disable_caching: True # override in cli
 
 formatting:
   convert_to: "bekern"
