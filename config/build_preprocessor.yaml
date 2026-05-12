@@ -5,5 +5,7 @@ defaults:
   - preprocessor: llava
   - _self_
 
+disable_caching: true
+
 formatting:
   convert_to: "bekern"
