@@ -50,8 +50,6 @@ def main(
         help="Hydra config overrides. Can be used multiple times.",
     ),
 ) -> None:
-    # this is only for dev purposes - i was hitting the quota limits just by downloading the 500k dataset
-
     typer.secho(f"Loading config from '{config_path}'...", fg=typer.colors.CYAN)
     cfg = resolve_config(pathlib.Path(config_path), override)
 
