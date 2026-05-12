@@ -75,6 +75,7 @@ def main(
             )
 
         typer.secho(f"[{ds_idx + 1}/{len(dataset_items)}] Parsing texts...", fg=typer.colors.CYAN)
+        ds = ds.select_columns([dataset_cfg.txt_col])
         ds = ds.map(parse_kern_row, fn_kwargs={"txt_col": dataset_cfg.txt_col, "krn_format": cfg.formatting.convert_to})
 
         typer.secho(f"[{ds_idx + 1}/{len(dataset_items)}] Adding to vocabulary...", fg=typer.colors.CYAN)
