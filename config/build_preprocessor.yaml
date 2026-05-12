@@ -4,7 +4,5 @@ defaults:
   - preprocessor: llava
   - _self_
 
-disable_caching: True # override in cli
-
 formatting:
   convert_to: "bekern"

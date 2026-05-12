@@ -26,7 +26,6 @@ class Config(pydantic.BaseModel, extra="forbid"):
     datasets: dict[str, music_ocr.data.DatasetConfig]
     formatting: FormattingConfig
     preprocessor: music_ocr.model.PreprocessorConfig
-    disable_caching: bool
 
 
 def resolve_config(
@@ -52,9 +51,6 @@ def main(
 ) -> None:
     typer.secho(f"Loading config from '{config_path}'...", fg=typer.colors.CYAN)
     cfg = resolve_config(pathlib.Path(config_path), override)
-
-    if cfg.disable_caching:
-        datasets.disable_caching()
 
     vocab_train: set[str] = set()
     vocab: set[str] = set()
