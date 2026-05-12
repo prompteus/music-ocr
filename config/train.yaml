@@ -27,14 +27,14 @@ formatting:
   convert_to: "bekern"
 
 train_loader:
-  batch_size: 32
+  batch_size: 52
   shuffle: true
   num_workers: 64
   prefetch_factor: 2
 
 valid_loader:
-  batch_size: 32
-  num_workers: 8
+  batch_size: 52
+  num_workers: 64
   prefetch_factor: 2
 
 gen_eval:
