@@ -8,10 +8,11 @@ text_config:
   num_hidden_layers: 8
   hidden_size: 256
   intermediate_size: 1024
-  num_attention_heads: 4
-  num_key_value_heads: 4
+  num_attention_heads: 8
+  num_key_value_heads: 8
   rope_parameters:
     rope_theta: 1000000.0
+    mrope_section: [4, 6, 6]  # must sum to head_dim//2 = hidden_size//(num_attention_heads*2) = 16
   pad_token_id: 0  # <PAD>
   eos_token_id: 3  # <EOS>
   vocab_size: ~  # filled from tokenizer at train time
@@ -20,7 +21,7 @@ vision_config:
   depth: 8
   hidden_size: 256
   intermediate_size: 1024
-  num_heads: 4
+  num_heads: 8
   in_channels: 1
   patch_size: 16
   spatial_merge_size: 2
