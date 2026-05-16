@@ -1,6 +1,7 @@
 import math
 from typing import Literal
 
+import PIL.Image
 import torch
 from torch import Tensor
 
@@ -51,3 +52,15 @@ def pad_sequence(
                 raise ValueError(f"Invalid padding_side {padding_side} or batch_first {batch_first}")
 
     return out_tensor
+
+
+def resize_image_to_fit(img: PIL.Image.Image, max_width: int | None, max_height: int | None) -> PIL.Image.Image:
+    w, h = img.size
+    scale = 1.0
+    if max_width is not None and w > max_width:
+        scale = min(scale, max_width / w)
+    if max_height is not None and h > max_height:
+        scale = min(scale, max_height / h)
+    if scale < 1.0:
+        return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), PIL.Image.Resampling.LANCZOS)
+    return img

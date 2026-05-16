@@ -23,6 +23,7 @@ import music_ocr.model.base
 import music_ocr.tokenizer
 import music_ocr.train_callbacks
 import music_ocr.trainer
+import music_ocr.utils
 
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
@@ -44,6 +45,11 @@ class FormattingConfig(pydantic.BaseModel, extra="forbid"):
     convert_to: music_ocr.kern.KernFormat
 
 
+class PrepareImageConfig(pydantic.BaseModel, extra="forbid"):
+    max_width: int | None = None
+    max_height: int | None = None
+
+
 class Config(pydantic.BaseModel, extra="forbid"):
     global_seed: int = 42
     torch: TorchConfig
@@ -55,6 +61,7 @@ class Config(pydantic.BaseModel, extra="forbid"):
     train_dataset: music_ocr.data.DatasetConfig
     valid_datasets: dict[str, music_ocr.data.DatasetConfig]
     formatting: FormattingConfig
+    prepare_image: PrepareImageConfig
     train_loader: dict
     valid_loader: dict
     gen_eval: GenerativeEvalConfig
@@ -115,11 +122,14 @@ def main(
     typer.secho("Loading dataset...", fg=typer.colors.CYAN)
     train_ds_raw = datasets.load_dataset(cfg.train_dataset.hf_handle, split=cfg.train_dataset.split_name)
     txt_col = cfg.train_dataset.txt_col
+    img_col = cfg.train_dataset.img_col
     krn_format = cfg.formatting.convert_to
+    max_width = cfg.prepare_image.max_width
+    max_height = cfg.prepare_image.max_height
     train_ds_raw.set_transform(
         lambda batch: {
             txt_col: [" ".join(music_ocr.kern.parse_kern(t, krn_format=krn_format)) for t in batch[txt_col]],
-            img_col: batch[img_col],
+            img_col: [music_ocr.utils.resize_image_to_fit(img, max_width, max_height) for img in batch[img_col]],
         },
     )
 
@@ -155,7 +165,7 @@ def main(
         valid_ds_raw.set_transform(
             lambda batch: {
                 txt_col: [" ".join(music_ocr.kern.parse_kern(t, krn_format=krn_format)) for t in batch[txt_col]],
-                img_col: batch[img_col],
+                img_col: [music_ocr.utils.resize_image_to_fit(img, max_width, max_height) for img in batch[img_col]],
             },
         )
         ds_valid = music_ocr.data.OCRDataset(

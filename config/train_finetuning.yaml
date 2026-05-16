@@ -7,7 +7,8 @@ defaults:
 preprocessor_path: ~ # fill in before training
 
 checkpointing:
-  - every_n_train_steps: 10000
+  - every_n_train_steps: 25000
+    save_top_k: -1
     filename: "step@{step}_periodic"
 
   - monitor: "grandstaff/loss"
@@ -26,6 +27,10 @@ torch:
 
 formatting:
   convert_to: "bekern"
+
+prepare_image:
+  max_width: ~
+  max_height: ~
 
 trainer:
   precision: "32-true"
